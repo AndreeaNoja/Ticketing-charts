@@ -29,12 +29,10 @@ def get_all_tickets(db: Session = Depends(get_db)):
 def get_tickets_by_status(db: Session = Depends(get_db)):
     query = text(
     """
-        SELECT 
-            STATUS as status, 
-            COUNT(*) as ticket_count
-
-        FROM INCIDENT_TICKETS
-        GROUP BY STATUS
+        SELECT s.STATUS_NAME as status, COUNT(*) as ticket_count
+        FROM INCIDENT_TICKETS t
+        JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
+        GROUP BY s.STATUS_NAME
     """)
 
     result = db.execute(query).mappings().all()
@@ -51,12 +49,10 @@ def get_tickets_by_status(db: Session = Depends(get_db)):
 def get_tickets_by_priority(db: Session = Depends(get_db)):
     query = text(
     """
-        SELECT 
-            PRIORITY as priority, 
-            COUNT(*) as ticket_count
-
-        FROM INCIDENT_TICKETS
-        GROUP BY PRIORITY
+        SELECT p.PRIORITY_NAME as priority, COUNT(*) as ticket_count
+        FROM INCIDENT_TICKETS t
+        JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
+        GROUP BY p.PRIORITY_NAME
         ORDER BY ticket_count DESC
     """)
 
@@ -99,21 +95,21 @@ def get_kpi_dashboard(db: Session = Depends(get_db)):
     status_query = text(
     """
         SELECT 
-            STATUS as status,
+            s.STATUS_NAME as status,
             COUNT(*) as ticket_count
-
-        FROM INCIDENT_TICKETS
-        GROUP BY STATUS
+        FROM INCIDENT_TICKETS t
+        JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
+        GROUP BY s.STATUS_NAME
     """)
 
     priority_query = text(
     """
         SELECT 
-            PRIORITY as priority,
+            p.PRIORITY_NAME as priority,
             COUNT(*) as ticket_count
-
-        FROM INCIDENT_TICKETS
-        GROUP BY PRIORITY
+        FROM INCIDENT_TICKETS t
+        JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
+        GROUP BY p.PRIORITY_NAME
         ORDER BY ticket_count DESC
     """)
 
