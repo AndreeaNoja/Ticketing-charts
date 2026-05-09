@@ -1,9 +1,11 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+
 import models
 from database import engine, get_db
 from sqlalchemy import func
+from kpi import router as kpi_router
 
 app = FastAPI(title="Ticketing KPI API")
 
@@ -24,15 +26,4 @@ def get_all_tickets(db: Session = Depends(get_db)):
     tickets = db.query(models.Ticket).all()
     return tickets
 
-@app.get("/tickets/stats/priority")
-def get_priority_stats(db: Session = Depends(get_db)):
-    stats = db.query(models.Ticket.PRIORITY, func.count(models.Ticket.TICKET_NUMBER)) \
-              .group_by(models.Ticket.PRIORITY).all()
-    return {priority: count for priority, count in stats}
-
-@app.get("/tickets/stats/status")
-def get_status_stats(db: Session = Depends(get_db)):
-    stats = db.query(models.Ticket.STATUS, func.count(models.Ticket.TICKET_NUMBER)) \
-              .group_by(models.Ticket.STATUS).all()
-    return {status: count for status, count in stats}
-
+app.include_router(kpi_router)

@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# React
+my-react-app/
+# node_modules/
+# public/
+# *.html
+# *.json
+# *.ts
+# *.md
+# *.js
