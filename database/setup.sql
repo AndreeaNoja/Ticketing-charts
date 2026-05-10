@@ -1,6 +1,14 @@
 USE master;
 GO
 
+-- Verifica daca db exista si o sterge daca da
+-- Mai intai seteaza baza de date pe single user pentru a o putea sterge
+IF DB_ID('ticketing') IS NOT NULL
+BEGIN
+    ALTER DATABASE ticketing SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE ticketing; 
+END
+
 DROP DATABASE IF EXISTS ticketing;
 GO
 

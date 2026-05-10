@@ -219,6 +219,7 @@ __marimo__/
 
 # React
 my-react-app/
+database/test.sql
 # node_modules/
 # public/
 # *.html

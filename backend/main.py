@@ -9,7 +9,7 @@ from kpi import router as kpi_router
 
 app = FastAPI(title="Ticketing KPI API")
 
-#accesezi API-ul din react
+# accesezi API-ul din react
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -41,4 +41,5 @@ def get_all_tickets(db: Session = Depends(get_db)):
     result = db.execute(query).mappings().all()
     return [dict(row) for row in result]
 
+# include routerul KPI in applicatie
 app.include_router(kpi_router)
