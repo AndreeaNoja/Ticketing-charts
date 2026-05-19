@@ -31,7 +31,8 @@ def get_all_tickets(db: Session = Depends(get_db)):
             c.COMPANY_NAME as COMPANY,
             tm.TEAM_NAME as TEAM,
             t.SERVICE,
-            t.ASSIGNED_PERSON
+            t.ASSIGNED_PERSON,
+            t.SUBMIT_DATETIME
         FROM INCIDENT_TICKETS t
         JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
         JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID

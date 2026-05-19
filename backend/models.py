@@ -26,3 +26,28 @@ class Ticket(Base):
     ESTIMATED_RESOLUTION_DATETIME = Column(DateTime)
     RESOLUTION_CATEGORY = Column(String(100))
     PENDING_DURATION = Column(Integer)
+
+# class Status(Base):
+#     __tablename__ = "STATUSES"
+
+#     STATUS_ID = Column(Integer, primary_key = True, index = True)
+#     STATUS_NAME = Column(String(50))
+
+# class Company(Base):
+#     __tablename__ = "COMPANIES"
+
+#     COMPANY_ID = Column(Integer, primary_key = True, index = True)
+#     COMPANY_NAME = Column(String(100))
+
+# class Team(Base):
+#     __tablename__ = "TEAMS"
+
+#     TEAM_ID = Column(Integer, primary_key = True, index = True)
+#     COMPANY_ID = Column(Integer, ForeignKey("COMPANIES.COMPANY_ID"))
+#     TEAM_NAME = Column(String(100))
+
+# class Priority(Base):
+#     __tablename__ = "STATUSES"
+
+#     PRIORITY_ID = Column(Integer, primary_key = True, index = True)
+#     PRIORITY_NAME = Column(String(50))
