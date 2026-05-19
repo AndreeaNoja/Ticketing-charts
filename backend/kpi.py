@@ -200,12 +200,7 @@ def get_average_resolution_time_per_team(db: Session = Depends(get_db)):
             "average_resolution_time_hours": round(avg_seconds / 3600, 2)
         })
     
-    return {
-        "label": "Average Resolution Time per Team:",
-        "data": avg_resolution_time_per_team,
-        "unit": "h"
-    }
-    
+    return avg_resolution_time_per_team    
 
 # KPI 10: tickete pe categorie (tier 1, tier 2, tier 3): - pie chart pentru fiecare
 @router.get("/tickets/category/tier-1")
@@ -279,8 +274,7 @@ def get_kpi_dashboard(db: Session = Depends(get_db)):
 
     tickets_per_team_result = get_tickets_per_team(db)
     tickets_per_team = tickets_per_team_result["data"]
-    avg_res_time_per_team_result = get_average_resolution_time_per_team(db)
-    avg_res_time_per_team = avg_res_time_per_team_result["data"]
+    avg_res_time_per_team = get_average_resolution_time_per_team(db)
 
     category_tier_1 = get_tickets_by_category_1(db)
     category_tier_2 = get_tickets_by_category_2(db)
@@ -302,11 +296,7 @@ def get_kpi_dashboard(db: Session = Depends(get_db)):
         "overdue_tickets": overdue_tickets,
 
         "tickets_per_team": tickets_per_team,
-        "avg_res_time_per_team": {
-            "label": avg_res_time_per_team_result["label"],
-            "data": avg_res_time_per_team,
-            "unit": "h"
-        },
+        "avg_res_time_per_team": avg_res_time_per_team,
 
         "category_tier_1": category_tier_1,
         "category_tier_2": category_tier_2,
