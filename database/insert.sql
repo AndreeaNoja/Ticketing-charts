@@ -7,6 +7,19 @@ GO
 INSERT INTO TEAMS (TEAM_NAME, COMPANY_ID) VALUES ('Support', 1), ('Network', 2), ('Frontend', 3), ('Data', 4), ('DevOps', 4);
 GO
 
+INSERT INTO USERS (FULL_NAME, EMAIL, TEAM) VALUES 
+('Popescu Ion', 'ion.popescu@vodafone.com', 'Support'),
+('Ionescu Maria', 'maria.ionescu@orange.com', 'Network'),
+('Georgescu Ana', 'ana.georgescu@digi.com', 'Frontend'),
+('Vasilescu Dan', 'dan.vasilescu@telekom.com', 'Data'),
+('Popa Elena', 'elena.popa@vodafone.com', 'Support'),
+('Radu Mihai', 'mihai.radu@digi.com', 'Frontend'),
+('Enache Paul', 'paul.enache@vodafone.com', 'Support'),
+('Marin Sorin', 'sorin.marin@telekom.com', 'DevOps'),
+('Ilie Cristina', 'cristina.ilie@telekom.com', 'Data'),
+('Tudor Alex', 'alex.tudor@orange.com', 'Support');
+GO
+
 INSERT INTO STATUSES (STATUS_NAME) VALUES ('Open'), ('In Progress'), ('Resolved'), ('Closed'), ('Pending');
 GO
 

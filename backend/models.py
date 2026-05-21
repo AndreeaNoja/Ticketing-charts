@@ -1,6 +1,14 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
 from database import Base
 
+class User(Base):
+    __tablename__ = "USERS"
+
+    USER_ID = Column(Integer, primary_key=True, index=True)
+    FULL_NAME = Column(String(100), unique=True, nullable=False)
+    EMAIL = Column(String(100))
+    TEAM = Column(String(50), ForeignKey("TEAMS.TEAM_NAME"))
+
 class Ticket(Base):
     __tablename__ = "INCIDENT_TICKETS"
 
@@ -11,7 +19,7 @@ class Ticket(Base):
     PRIORITY_ID = Column(Integer, ForeignKey("PRIORITIES.PRIORITY_ID"))
     
     PROJECT = Column(String(100))
-    ASSIGNED_PERSON = Column(String(100))
+    ASSIGNED_PERSON = Column(String(100), ForeignKey("USERS.FULL_NAME"))
     SERVICE = Column(String(100))
     DESCRIPTION = Column(Text)
     NOTES = Column(Text)
