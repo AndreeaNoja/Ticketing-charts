@@ -220,6 +220,7 @@ __marimo__/
 # React
 my-react-app/
 database/test.sql
+*.zip
 # node_modules/
 # public/
 # *.html
