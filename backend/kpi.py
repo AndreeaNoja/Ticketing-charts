@@ -3,6 +3,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import get_db
 from typing import Optional, Any
+from datetime import date, datetime, timedelta
+from collections import Counter, defaultdict
 
 router = APIRouter(
     prefix="/kpi",
@@ -242,8 +244,113 @@ def get_kpi_dashboard(
     status: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
     team: Optional[str] = Query(None),
+    startDate: Optional[date] = Query(None),
+    endDate: Optional[date] = Query(None),
     db: Session = Depends(get_db)
 ):
+    if startDate or endDate:
+        query = text("""
+            SELECT
+                s.STATUS_NAME AS STATUS,
+                p.PRIORITY_NAME AS PRIORITY,
+                tm.TEAM_NAME AS TEAM,
+                t.CATEGORY_TIER_1,
+                t.CATEGORY_TIER_2,
+                t.CATEGORY_TIER_3,
+                t.SUBMIT_DATETIME,
+                t.RESOLVED_DATETIME,
+                t.ESTIMATED_RESOLUTION_DATETIME
+            FROM INCIDENT_TICKETS t
+            JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
+            JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
+            JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
+            WHERE (:status IS NULL OR s.STATUS_NAME = :status)
+              AND (:priority IS NULL OR p.PRIORITY_NAME = :priority)
+              AND (:team IS NULL OR tm.TEAM_NAME = :team)
+              AND (:start_date IS NULL OR t.SUBMIT_DATETIME >= :start_date)
+              AND (:end_date IS NULL OR t.SUBMIT_DATETIME < :end_date)
+        """)
+
+        start_date = datetime.combine(startDate, datetime.min.time()) if startDate else None
+        end_date = datetime.combine(endDate + timedelta(days=1), datetime.min.time()) if endDate else None
+        params = {
+            "status": status or None,
+            "priority": priority or None,
+            "team": team or None,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+        rows = db.execute(query, params).mappings().all()
+
+        total_tickets = len(rows)
+
+        status_counter = Counter((row["STATUS"] or "Necunoscut") for row in rows)
+        priority_counter = Counter((row["PRIORITY"] or "Necunoscut") for row in rows)
+        tier1_counter = Counter((row["CATEGORY_TIER_1"] or "Necunoscut") for row in rows)
+        tier2_counter = Counter((row["CATEGORY_TIER_2"] or "Necunoscut") for row in rows)
+        tier3_counter = Counter((row["CATEGORY_TIER_3"] or "Necunoscut") for row in rows)
+
+        team_counter = Counter((row["TEAM"] or "Necunoscut") for row in rows)
+        team_resolved_seconds = defaultdict(list)
+
+        resolved_like = {"Resolved", "Closed"}
+        unresolved_count = 0
+        resolved_count = 0
+        overdue_count = 0
+        all_resolution_seconds = []
+
+        for row in rows:
+            row_status = row["STATUS"] or "Necunoscut"
+            submit_dt = row["SUBMIT_DATETIME"]
+            resolved_dt = row["RESOLVED_DATETIME"]
+            estimated_dt = row["ESTIMATED_RESOLUTION_DATETIME"]
+            team_name = row["TEAM"] or "Necunoscut"
+
+            if row_status in resolved_like:
+                resolved_count += 1
+            else:
+                unresolved_count += 1
+
+            if submit_dt and resolved_dt:
+                diff_seconds = (resolved_dt - submit_dt).total_seconds()
+                if diff_seconds >= 0:
+                    all_resolution_seconds.append(diff_seconds)
+                    team_resolved_seconds[team_name].append(diff_seconds)
+
+            if resolved_dt and estimated_dt and resolved_dt > estimated_dt:
+                overdue_count += 1
+
+        avg_resolution_seconds = sum(all_resolution_seconds) / len(all_resolution_seconds) if all_resolution_seconds else 0
+        avg_resolution_hours = round(avg_resolution_seconds / 3600, 2)
+
+        unresolved_percentage = round((unresolved_count / total_tickets) * 100, 2) if total_tickets else 0.00
+        resolved_percentage = round((resolved_count / total_tickets) * 100, 2) if total_tickets else 0.00
+        overdue_percentage = round((overdue_count / resolved_count) * 100, 2) if resolved_count else 0.00
+
+        avg_res_time_per_team = []
+        for team_name, seconds_list in team_resolved_seconds.items():
+            avg_team_seconds = sum(seconds_list) / len(seconds_list) if seconds_list else 0
+            avg_res_time_per_team.append({
+                "team": team_name,
+                "average_resolution_time_hours": round(avg_team_seconds / 3600, 2),
+            })
+        avg_res_time_per_team.sort(key=lambda item: item["average_resolution_time_hours"], reverse=True)
+
+        return {
+            "total_tickets": {"label": "Total Tickets", "value": total_tickets},
+            "tickets_by_status": [{"status": key, "count": value} for key, value in status_counter.items()],
+            "tickets_by_priority": [{"priority": key, "count": value} for key, value in priority_counter.items()],
+            "avg_res_time": {"label": "Average Resolution Time", "value": avg_resolution_hours, "unit": "h"},
+            "unresolved_tickets": {"label": "Unresolved Tickets Percentage:", "value": unresolved_percentage, "unit": "%"},
+            "resolved_tickets": {"label": "Resolved Tickets Percentage:", "value": resolved_percentage, "unit": "%"},
+            "overdue_tickets": {"label": "Overdue Tickets Percentage:", "value": overdue_percentage, "unit": "%"},
+            "tickets_per_team": [{"team": key, "count": value} for key, value in team_counter.items()],
+            "avg_res_time_per_team": avg_res_time_per_team,
+            "category_tier_1": [{"category": key, "count": value} for key, value in tier1_counter.items()],
+            "category_tier_2": [{"category": key, "count": value} for key, value in tier2_counter.items()],
+            "category_tier_3": [{"category": key, "count": value} for key, value in tier3_counter.items()],
+        }
+
     active_filters = build_filter_params(
         status = status,
         priority = priority,
