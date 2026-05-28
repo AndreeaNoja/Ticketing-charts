@@ -335,13 +335,24 @@ CREATE OR ALTER PROCEDURE dbo.GetKpiSlaCompliance
     @endDate DATETIME = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
+
     SELECT 
-        SUM(CASE WHEN t.RESOLVED_DATETIME <= t.ESTIMATED_RESOLUTION_DATETIME THEN 1 ELSE 0 END) as in_sla_count,
-        SUM(CASE WHEN t.RESOLVED_DATETIME > t.ESTIMATED_RESOLUTION_DATETIME OR (t.RESOLVED_DATETIME IS NULL AND GETDATE() > t.ESTIMATED_RESOLUTION_DATETIME) THEN 1 ELSE 0 END) as out_sla_count
+        SUM(CASE 
+            WHEN t.RESOLVED_DATETIME <= DATEADD(HOUR, sc.SLA_HOURS, t.SUBMIT_DATETIME) THEN 1 
+            ELSE 0 
+        END) as in_sla_count,
+        
+        SUM(CASE 
+            WHEN t.RESOLVED_DATETIME > DATEADD(HOUR, sc.SLA_HOURS, t.SUBMIT_DATETIME) 
+                 OR (t.RESOLVED_DATETIME IS NULL AND GETDATE() > DATEADD(HOUR, sc.SLA_HOURS, t.SUBMIT_DATETIME)) THEN 1 
+            ELSE 0 
+        END) as out_sla_count
     FROM INCIDENT_TICKETS t
-    JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
-    JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
-    JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
+    INNER JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
+    INNER JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
+    INNER JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
+    INNER JOIN SLA_CONFIG sc ON t.PRIORITY_ID = sc.PRIORITY_ID
     WHERE (@status IS NULL OR s.STATUS_NAME = @status)
       AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
       AND (@team IS NULL OR tm.TEAM_NAME = @team)
@@ -358,32 +369,61 @@ CREATE OR ALTER PROCEDURE dbo.GetKpiSlaIntervals
     @endDate DATETIME = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
+
+    -- CTE 1: Dynamically generate lower and upper bounds from whatever is inside SLA_CONFIG
+    WITH SlaBounds AS (
+        SELECT 
+            SLA_HOURS as upper_bound,
+            -- LAG fetches the previous tier's hours to serve as this tier's starting point
+            ISNULL(LAG(SLA_HOURS) OVER (ORDER BY SLA_HOURS ASC), 0) as lower_bound,
+            -- Construct the chart string dynamically based on the exact configuration values
+            CASE 
+                WHEN LAG(SLA_HOURS) OVER (ORDER BY SLA_HOURS ASC) IS NULL 
+                THEN 'Sub ' + CAST(SLA_HOURS AS VARCHAR(5)) + 'h'
+                ELSE CAST(LAG(SLA_HOURS) OVER (ORDER BY SLA_HOURS ASC) AS VARCHAR(5)) + 'h - ' + CAST(SLA_HOURS AS VARCHAR(5)) + 'h'
+            END as interval_label,
+            SLA_HOURS as sort_order
+        FROM SLA_CONFIG
+    ),
+    
+    -- CTE 2: Create a catch-all row for tickets that breach the highest configured threshold
+    MaxSlaCatchAll AS (
+        SELECT upper_bound FROM SlaBounds WHERE upper_bound = (SELECT MAX(SLA_HOURS) FROM SLA_CONFIG)
+    ),
+    
+    -- CTE 3: Combine all configuration bounds into a unified layout map
+    AllIntervalsMap AS (
+        SELECT lower_bound, upper_bound, interval_label, sort_order FROM SlaBounds
+        UNION ALL
+        SELECT upper_bound, 999999, 'Peste ' + CAST(upper_bound AS VARCHAR(5)) + 'h', upper_bound + 1 
+        FROM MaxSlaCatchAll
+    ),
+
+    -- CTE 4: Gather the filtered incident tickets data and find their resolution durations
+    TicketDurations AS (
+        SELECT 
+            DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0 as actual_hours
+        FROM INCIDENT_TICKETS t
+        INNER JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
+        INNER JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
+        INNER JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
+        WHERE t.RESOLVED_DATETIME IS NOT NULL 
+          AND t.SUBMIT_DATETIME IS NOT NULL
+          AND (@status IS NULL OR s.STATUS_NAME = @status)
+          AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
+          AND (@team IS NULL OR tm.TEAM_NAME = @team)
+          AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
+          AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
+    )
+
+    -- Final Query: Match ticket hours against our dynamic range maps and aggregate
     SELECT 
-        CASE 
-            WHEN DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0 <= 8.0 THEN 'Sub 8h'
-            WHEN DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0 <= 16.0 THEN '8h - 16h'
-            WHEN DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0 <= 32.0 THEN '16h - 32h'
-            WHEN DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0 <= 64.0 THEN '32h - 64h'
-            ELSE 'Peste 64h'
-        END as sla_interval,
-        COUNT(*) as ticket_count
-    FROM INCIDENT_TICKETS t
-    JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
-    JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
-    JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
-    WHERE t.RESOLVED_DATETIME IS NOT NULL AND t.SUBMIT_DATETIME IS NOT NULL
-      AND (@status IS NULL OR s.STATUS_NAME = @status)
-      AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-      AND (@team IS NULL OR tm.TEAM_NAME = @team)
-      AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
-      AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
-    GROUP BY 
-        CASE 
-            WHEN DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0 <= 8.0 THEN 'Sub 8h'
-            WHEN DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0 <= 16.0 THEN '8h - 16h'
-            WHEN DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0 <= 32.0 THEN '16h - 32h'
-            WHEN DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0 <= 64.0 THEN '32h - 64h'
-            ELSE 'Peste 64h'
-        END;
+        m.interval_label as sla_interval,
+        COUNT(t.actual_hours) as ticket_count
+    FROM AllIntervalsMap m
+    LEFT JOIN TicketDurations t ON t.actual_hours > m.lower_bound AND t.actual_hours <= m.upper_bound
+    GROUP BY m.interval_label, m.sort_order
+    ORDER BY m.sort_order ASC; -- Keeps your chart items ordering seamlessly from fastest to slowest
 END;
 GO

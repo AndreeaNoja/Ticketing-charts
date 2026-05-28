@@ -43,3 +43,12 @@ INSERT INTO INCIDENT_TICKETS(
 ('INC0009', 2, 2, 1, 4, 'Analytics', 'Ilie Cristina', 'DB', 'Data mismatch', 'Checking ETL', NULL, 'App', 'Data', 'ETL Issue', '2026-03-23 10:00', NULL, NULL, '2026-03-23 11:00', '2026-03-23 16:00', NULL, 15),
 ('INC0010', 5, 1, 2, 1, 'CRM', 'Tudor Alex', 'Backend', 'Email not sent', 'Waiting SMTP', NULL, 'App', 'Backend', 'Email', '2026-03-24 08:00', NULL, NULL, '2026-03-24 09:00', '2026-03-24 12:00', NULL, 60);
 GO
+
+
+INSERT INTO SLA_CONFIG (PRIORITY_ID, SLA_HOURS) VALUES 
+(4, 8),  
+(3, 16),  
+(2, 32), 
+(1, 64);
+
+
