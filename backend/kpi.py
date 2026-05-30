@@ -12,24 +12,34 @@ router = APIRouter(
 
 # Constructia de filtre:
 def CommonKpiFilters(
-        status: Optional[str] = Query(None),
-        priority: Optional[str] = Query(None),
-        team: Optional[str] = Query(None),
-        startDate: Optional[date] = Query(None),
-        endDate: Optional[date] = Query(None),
+    status: list[str] | None = Query(None),
+    priority: list[str] | None = Query(None),
+    team: list[str] | None = Query(None),
+    startDate: Optional[date] = Query(None),
+    endDate: Optional[date] = Query(None),
 ) -> dict[str, Any]:
 
     start_dt = datetime.combine(startDate, datetime.min.time()) if startDate else None
     end_dt = datetime.combine(endDate + timedelta(days=1), datetime.min.time()) if endDate else None
 
     return {
-        "status": status or None,
-        "priority": priority or None,
-        "team": team or None,
+        "status": list_to_csv(status),
+        "priority": list_to_csv(priority),
+        "team": list_to_csv(team),
         "startDate": start_dt,
         "endDate": end_dt
     }
 
+# Functie care transforma listele in CSV
+def list_to_csv(values: list[str] | None) -> str | None:
+    if not values:
+        return None
+    
+    cleaned_values = [value.strip() for value in values if value and value.strip()]
+    if not cleaned_values:
+        return None
+    
+    return ",".join(cleaned_values)
 
 # Functie care executa procedurile
 def exec_procedure(db: Session, procedure_name: str, params: dict[str, Any]):
@@ -253,7 +263,6 @@ def get_sla_intervals(filters: dict = Depends(CommonKpiFilters), db: Session = D
     return get_sla_intervals_data(db, filters)
 
 
-
 # Dashboard cu toate KPI-urile:
 @router.get("/dashboard")
 def get_kpi_dashboard(filters: dict = Depends(CommonKpiFilters), db: Session = Depends(get_db)):
@@ -277,4 +286,45 @@ def get_kpi_dashboard(filters: dict = Depends(CommonKpiFilters), db: Session = D
         "category_tier_3": get_tickets_by_category_3_data(db, filters),
         "sla_compliance": get_sla_compliance_data(db, filters),
         "sla_intervals": get_sla_intervals_data(db, filters)
+    }
+
+# --- Campuri dinamice pentru filtre mai sigure ---
+# Echipe:
+def get_teams(db: Session = Depends(get_db)):
+    query = text(
+    """
+        SELECT TEAM_NAME FROM TEAMS ORDER BY TEAM_NAME
+    """)
+    result = db.execute(query).mappings().all()
+    return [row["TEAM_NAME"] for row in result]
+
+# Statusuri:
+def get_statuses(db: Session = Depends(get_db)):
+    query = text(
+    """
+        SELECT STATUS_NAME FROM STATUSES ORDER BY STATUS_NAME
+    """)
+    result = db.execute(query).mappings().all()
+    return [row["STATUS_NAME"] for row in result]
+
+# Prioritati:
+def get_priorities(db: Session = Depends(get_db)):
+    query = text(
+    """
+        SELECT PRIORITY_NAME FROM PRIORITIES ORDER BY PRIORITY_NAME
+    """)
+    result = db.execute(query).mappings().all()
+    return [row["PRIORITY_NAME"] for row in result]
+
+# Dashboard cu toate KPI-urile:
+@router.get("/filters")
+def get_data_for_filters(db: Session = Depends(get_db)):
+    status_result = get_statuses(db)
+    priority_result = get_priorities(db)
+    team_result = get_teams(db)
+
+    return {
+        "statuses": status_result,
+        "priorities": priority_result,
+        "teams": team_result
     }

@@ -13,9 +13,9 @@ GO
    ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiTotalTickets
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -27,9 +27,27 @@ BEGIN
     LEFT JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
-    WHERE (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate);
 END;
@@ -37,9 +55,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiTicketsByStatus
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -51,9 +69,27 @@ BEGIN
     JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
-    WHERE (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
     GROUP BY s.STATUS_NAME
@@ -63,9 +99,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiTicketsByPriority
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -77,9 +113,27 @@ BEGIN
     JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     LEFT JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
-    WHERE (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
     GROUP BY p.PRIORITY_NAME
@@ -89,9 +143,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiAverageResolutionTime
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -103,11 +157,27 @@ BEGIN
     LEFT JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
-    WHERE t.RESOLVED_DATETIME is not NULL 
-        AND t.SUBMIT_DATETIME is not NULL
-        AND (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate);
 END;
@@ -115,9 +185,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiUnresolvedTickets
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -130,9 +200,27 @@ BEGIN
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
     WHERE s.STATUS_NAME NOT IN ('Closed', 'Resolved')
-        AND (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+        AND (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate);
 END;
@@ -140,9 +228,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiResolvedTickets
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -155,9 +243,27 @@ BEGIN
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
     WHERE s.STATUS_NAME IN ('Closed', 'Resolved')
-        AND (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+        AND (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate);
 END;
@@ -165,9 +271,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiOverdueTickets
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -181,9 +287,27 @@ BEGIN
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
     WHERE t.ESTIMATED_RESOLUTION_DATETIME < t.RESOLVED_DATETIME 
         AND t.RESOLVED_DATETIME is not NULL
-        AND (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+        AND (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate);
 END;
@@ -191,9 +315,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiTicketsPerTeam
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -205,9 +329,27 @@ BEGIN
     JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
     LEFT JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
-    WHERE (@status IS NULL OR s.STATUS_NAME = @status)
-      AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-      AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
       AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
       AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
     GROUP BY tm.TEAM_NAME
@@ -217,9 +359,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiTicketsAverageResolutionTimePerTeam
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -233,9 +375,27 @@ BEGIN
     LEFT JOIN INCIDENT_TICKETS t ON t.TEAM_ID = tm.TEAM_ID AND t.RESOLVED_DATETIME is not NULL
     LEFT JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
-    WHERE (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
     GROUP BY tm.TEAM_NAME
@@ -245,9 +405,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiTicketsByCategoryTier1
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -261,9 +421,27 @@ BEGIN
     LEFT JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
-    WHERE (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
     GROUP BY ISNULL(t.CATEGORY_TIER_1, 'Necunoscut')
@@ -273,9 +451,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiTicketsByCategoryTier2
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -289,9 +467,27 @@ BEGIN
     LEFT JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
-    WHERE (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
     GROUP BY ISNULL(t.CATEGORY_TIER_2, 'Necunoscut')
@@ -301,9 +497,9 @@ GO
 
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiTicketsByCategoryTier3
-    @status VARCHAR(50) = NULL,
-    @priority VARCHAR(50) = NULL,
-    @team VARCHAR(100) = NULL,
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -317,9 +513,27 @@ BEGIN
     LEFT JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     LEFT JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     LEFT JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
-    WHERE (@status IS NULL OR s.STATUS_NAME = @status)
-        AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-        AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
         AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
         AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
     GROUP BY ISNULL(t.CATEGORY_TIER_3, 'Necunoscut')
@@ -328,9 +542,9 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiSlaCompliance
-    @status NVARCHAR(50) = NULL,
-    @priority NVARCHAR(50) = NULL,
-    @team NVARCHAR(50) = NULL,
+    @status NVARCHAR(MAX) = NULL,
+    @priority NVARCHAR(MAX) = NULL,
+    @team NVARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -353,18 +567,36 @@ BEGIN
     INNER JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     INNER JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
     INNER JOIN SLA_CONFIG sc ON t.PRIORITY_ID = sc.PRIORITY_ID
-    WHERE (@status IS NULL OR s.STATUS_NAME = @status)
-      AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-      AND (@team IS NULL OR tm.TEAM_NAME = @team)
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
       AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
       AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate);
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.GetKpiSlaIntervals
-    @status NVARCHAR(50) = NULL,
-    @priority NVARCHAR(50) = NULL,
-    @team NVARCHAR(50) = NULL,
+    @status NVARCHAR(MAX) = NULL,
+    @priority NVARCHAR(MAX) = NULL,
+    @team NVARCHAR(MAX) = NULL,
     @startDate DATETIME = NULL,
     @endDate DATETIME = NULL
 AS
@@ -410,9 +642,27 @@ BEGIN
         INNER JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
         WHERE t.RESOLVED_DATETIME IS NOT NULL 
           AND t.SUBMIT_DATETIME IS NOT NULL
-          AND (@status IS NULL OR s.STATUS_NAME = @status)
-          AND (@priority IS NULL OR p.PRIORITY_NAME = @priority)
-          AND (@team IS NULL OR tm.TEAM_NAME = @team)
+          AND (
+                @status IS NULL
+                OR s.STATUS_NAME IN (
+                    SELECT LTRIM(RTRIM(value))
+                    FROM STRING_SPLIT(@status, ',')
+                )
+            )
+            AND (
+                @priority IS NULL
+                OR p.PRIORITY_NAME IN (
+                    SELECT LTRIM(RTRIM(value))
+                    FROM STRING_SPLIT(@priority, ',')
+                )
+            )
+            AND (
+                @team IS NULL
+                OR tm.TEAM_NAME IN (
+                    SELECT LTRIM(RTRIM(value))
+                    FROM STRING_SPLIT(@team, ',')
+                )
+            )
           AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
           AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
     )
@@ -425,5 +675,60 @@ BEGIN
     LEFT JOIN TicketDurations t ON t.actual_hours > m.lower_bound AND t.actual_hours <= m.upper_bound
     GROUP BY m.interval_label, m.sort_order
     ORDER BY m.sort_order ASC; -- Keeps your chart items ordering seamlessly from fastest to slowest
+END;
+GO
+
+-- Procedura pentru toate ticketele din main.py:
+CREATE OR ALTER PROCEDURE dbo.GetTickets
+    @status VARCHAR(MAX) = NULL,
+    @priority VARCHAR(MAX) = NULL,
+    @team VARCHAR(MAX) = NULL,
+    @startDate DATETIME = NULL,
+    @endDate DATETIME = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        t.TICKET_NUMBER,
+        s.STATUS_NAME AS STATUS,
+        p.PRIORITY_NAME AS PRIORITY,
+        c.COMPANY_NAME AS COMPANY,
+        tm.TEAM_NAME AS TEAM,
+        t.CATEGORY_TIER_1,
+        t.CATEGORY_TIER_2,
+        t.CATEGORY_TIER_3,
+        t.SERVICE,
+        t.ASSIGNED_PERSON,
+        t.SUBMIT_DATETIME
+    FROM INCIDENT_TICKETS t
+    JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
+    JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
+    JOIN COMPANIES c ON t.COMPANY_ID = c.COMPANY_ID
+    JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
+    WHERE (
+            @status IS NULL
+            OR s.STATUS_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@status, ',')
+            )
+        )
+        AND (
+            @priority IS NULL
+            OR p.PRIORITY_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@priority, ',')
+            )
+        )
+        AND (
+            @team IS NULL
+            OR tm.TEAM_NAME IN (
+                SELECT LTRIM(RTRIM(value))
+                FROM STRING_SPLIT(@team, ',')
+            )
+        )
+        AND (@startDate IS NULL OR t.SUBMIT_DATETIME >= @startDate)
+        AND (@endDate IS NULL OR t.SUBMIT_DATETIME < @endDate)
+    ORDER BY t.SUBMIT_DATETIME DESC;
 END;
 GO
