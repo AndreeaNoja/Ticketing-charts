@@ -689,6 +689,31 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+   WITH SlaBounds AS (
+        SELECT 
+            SLA_HOURS as upper_bound,
+            ISNULL(LAG(SLA_HOURS) OVER (ORDER BY SLA_HOURS ASC), 0) as lower_bound,
+            CASE 
+                WHEN LAG(SLA_HOURS) OVER (ORDER BY SLA_HOURS ASC) IS NULL 
+                THEN 'Sub ' + CAST(SLA_HOURS AS VARCHAR(5)) + 'h'
+                ELSE CAST(LAG(SLA_HOURS) OVER (ORDER BY SLA_HOURS ASC) AS VARCHAR(5)) + 'h - ' + CAST(SLA_HOURS AS VARCHAR(5)) + 'h'
+            END as interval_label
+        FROM SLA_CONFIG
+    ),
+    
+    -- CTE 2: Determine your catch-all boundary maximum limit row
+    MaxSlaCatchAll AS (
+        SELECT upper_bound FROM SlaBounds WHERE upper_bound = (SELECT MAX(SLA_HOURS) FROM SLA_CONFIG)
+    ),
+    
+    -- CTE 3: Combine all configuration bounds into a unified layout map
+    AllIntervalsMap AS (
+        SELECT lower_bound, upper_bound, interval_label FROM SlaBounds
+        UNION ALL
+        SELECT upper_bound, 999999, 'Peste ' + CAST(upper_bound AS VARCHAR(5)) + 'h'
+        FROM MaxSlaCatchAll
+    )
+
     SELECT 
         t.TICKET_NUMBER,
         s.STATUS_NAME AS STATUS,
@@ -700,12 +725,35 @@ BEGIN
         t.CATEGORY_TIER_3,
         t.SERVICE,
         t.ASSIGNED_PERSON,
-        t.SUBMIT_DATETIME
+        t.SUBMIT_DATETIME,
+        t.RESOLVED_DATETIME,
+        
+        -- SLA Status calculation relying on 'sc'
+        CASE 
+            WHEN t.RESOLVED_DATETIME <= DATEADD(HOUR, sc.SLA_HOURS, t.SUBMIT_DATETIME) THEN 'In SLA'
+            WHEN t.RESOLVED_DATETIME > DATEADD(HOUR, sc.SLA_HOURS, t.SUBMIT_DATETIME) 
+                 OR (t.RESOLVED_DATETIME IS NULL AND GETDATE() > DATEADD(HOUR, sc.SLA_HOURS, t.SUBMIT_DATETIME)) THEN 'Out of SLA'
+            ELSE 'In SLA'
+        END AS SLA_STATUS,
+
+        -- DYNAMIC READ: Extracts exact label text matched from our dynamic intervals matrix map CTE
+        CASE 
+            WHEN t.RESOLVED_DATETIME IS NULL THEN 'Nerezolvat'
+            ELSE ISNULL(m.interval_label, 'Necunoscut')
+        END AS SLA_INTERVAL
+
     FROM INCIDENT_TICKETS t
     JOIN STATUSES s ON t.STATUS_ID = s.STATUS_ID
     JOIN PRIORITIES p ON t.PRIORITY_ID = p.PRIORITY_ID
     JOIN COMPANIES c ON t.COMPANY_ID = c.COMPANY_ID
     JOIN TEAMS tm ON t.TEAM_ID = tm.TEAM_ID
+    
+    -- THE MISSING LINE: We must join SLA_CONFIG so 'sc.SLA_HOURS' exists!
+    LEFT JOIN SLA_CONFIG sc ON t.PRIORITY_ID = sc.PRIORITY_ID
+    
+    LEFT JOIN AllIntervalsMap m ON (DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0) > m.lower_bound 
+        AND (DATEDIFF(SECOND, t.SUBMIT_DATETIME, t.RESOLVED_DATETIME) / 3600.0) <= m.upper_bound
+        
     WHERE (
             @status IS NULL
             OR s.STATUS_NAME IN (
